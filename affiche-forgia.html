@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Affiche Forgia — Antoine Becker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#08080f;--bg2:#0c0c16;
+  --t1:#faf5eb;--t2:#9a8e7a;--muted:#605848;
+  --p:#f59e0b;--c:#e67e22;
+  --grad:linear-gradient(135deg,#f97316,#f59e0b 40%,#d4a017 70%,#ef4444);
+  --f:'Inter',-apple-system,sans-serif;--m:'JetBrains Mono',monospace;
+}
+html,body{width:100%;height:100%;overflow:hidden}
+body{
+  font-family:var(--f);background:var(--bg);color:var(--t1);
+  display:flex;align-items:center;justify-content:center;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Background */
+.bg-mesh{
+  position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 50% 70% at 15% 50%,rgba(245,158,11,.07),transparent),
+    radial-gradient(ellipse 50% 60% at 85% 50%,rgba(230,126,34,.05),transparent),
+    radial-gradient(ellipse 60% 40% at 50% 50%,rgba(212,160,23,.03),transparent);
+}
+#sparksCanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+
+/* POSTER — Horizontal layout */
+.poster{
+  position:relative;z-index:2;
+  width:100vw;max-width:none;
+  height:100vh;
+  display:grid;
+  grid-template-columns:1fr 2fr 1fr;
+  grid-template-rows:1fr;
+  gap:0;
+  padding:48px 80px;
+  align-items:center;
+}
+
+/* LEFT — Photo + author */
+.left{
+  grid-column:1;grid-row:1/4;
+  display:flex;flex-direction:column;align-items:center;
+  gap:16px;
+}
+.photo{
+  width:280px;height:280px;
+  border-radius:50%;object-fit:cover;
+  border:3px solid rgba(245,158,11,.35);
+  box-shadow:0 0 50px rgba(245,158,11,.12),0 0 100px rgba(245,158,11,.05);
+}
+.author-name{font-size:1.8rem;font-weight:800;text-align:center;letter-spacing:-.02em}
+.author-role{font-size:1rem;color:var(--p);text-align:center;font-weight:500}
+.author-links{
+  display:flex;flex-direction:column;gap:6px;
+  font-family:var(--m);font-size:.88rem;color:var(--t2);
+  text-align:center;margin-top:8px;
+}
+.author-links a{color:var(--t2);text-decoration:none;transition:color .2s}
+.author-links a:hover{color:var(--p)}
+
+/* CENTER — Logo + text */
+.center{
+  grid-column:2;grid-row:1/4;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;
+  gap:20px;
+}
+.logo-img{
+  width:500px;max-width:100%;height:auto;
+  filter:drop-shadow(0 0 30px rgba(245,158,11,.2));
+  margin-bottom:4px;
+}
+.poster-subtitle{
+  font-family:var(--m);font-size:clamp(.85rem,1.3vw,1.1rem);
+  text-transform:uppercase;letter-spacing:5px;
+  color:var(--p);opacity:.8;
+}
+.poster-desc{
+  font-size:clamp(1.05rem,1.5vw,1.3rem);
+  color:var(--t2);line-height:1.8;
+  max-width:650px;
+}
+.poster-desc strong{color:var(--t1)}
+.poster-desc em{color:var(--p);font-style:normal;font-weight:600}
+
+/* Tags */
+.tags{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.tag{
+  font-family:var(--m);font-size:.85rem;font-weight:600;
+  padding:8px 16px;border-radius:20px;
+  border:1px solid rgba(245,158,11,.2);
+  background:rgba(245,158,11,.06);
+  color:var(--p);letter-spacing:.5px;
+}
+
+/* RIGHT — QR code */
+.right{
+  grid-column:3;grid-row:1/4;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:16px;
+}
+.qr-box{
+  width:220px;height:220px;
+  background:#fff;border-radius:12px;padding:10px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 40px rgba(245,158,11,.08);
+}
+.qr-box canvas{width:100%!important;height:100%!important}
+.qr-label{
+  font-family:var(--m);font-size:.9rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:2px;
+  color:var(--p);text-align:center;
+}
+.qr-url{
+  font-size:1rem;font-weight:600;color:var(--t1);
+  text-align:center;word-break:break-all;
+}
+.qr-hint{font-size:.88rem;color:var(--muted);text-align:center}
+
+/* Decorative line */
+.vline{
+  width:1px;height:60%;position:absolute;top:20%;
+  background:linear-gradient(180deg,transparent,rgba(245,158,11,.15),transparent);
+}
+.vline-left{left:368px}
+.vline-right{right:328px}
+
+/* Animated gradient on logo text (pulse) */
+@keyframes gradshift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* Print */
+@media print{
+  body{background:#fff!important;color:#111!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .bg-mesh,#sparksCanvas,.vline{display:none!important}
+  .poster{border:3px solid #f59e0b;padding:30px}
+  .poster-desc{color:#555}.poster-desc strong{color:#111}
+  .poster-desc em{color:#c47f09}
+  .tag{border-color:#f59e0b;color:#c47f09;-webkit-print-color-adjust:exact}
+  .photo{border-color:#f59e0b}
+  .author-name{color:#111}
+  .author-role{color:#c47f09}
+  .qr-label{color:#c47f09}
+}
+
+/* Responsive — tablette */
+@media(max-width:1024px){
+  .poster{
+    grid-template-columns:1fr;
+    grid-template-rows:auto auto auto;
+    gap:32px 0;
+    text-align:center;
+    padding:32px 24px;
+  }
+  .left{grid-column:1;grid-row:1;flex-direction:row;gap:20px}
+  .center{grid-column:1;grid-row:2}
+  .right{grid-column:1;grid-row:3;flex-direction:row;gap:20px}
+  .photo{width:120px;height:120px}
+  .vline{display:none}
+  .logo-img{width:300px}
+}
+@media(max-width:600px){
+  .left{flex-direction:column}
+  .right{flex-direction:column}
+  .logo-img{width:250px}
+}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+<canvas id="sparksCanvas"></canvas>
+
+<div class="poster">
+  <!-- Decorative vertical lines -->
+  <div class="vline vline-left"></div>
+  <div class="vline vline-right"></div>
+
+  <!-- LEFT — Photo + Author -->
+  <div class="left">
+    <img src="Ressources/antoine-becker.avif" alt="Antoine Becker" class="photo">
+    <div>
+      <div class="author-name">Antoine Becker</div>
+      <div class="author-role">Fondateur &amp; Lead Developer</div>
+      <div class="author-links">
+        <a href="mailto:antoinebecker10@hotmail.com">antoinebecker10@hotmail.com</a>
+        <a href="https://discord.gg/tCJfMRA6">Discord Forgia</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER — Logo + Pitch -->
+  <div class="center">
+    <img src="Ressources/Forgia.svg" alt="Forgia" class="logo-img">
+    <p class="poster-subtitle">Plateforme de création de jeux 3D</p>
+
+    <p class="poster-desc">
+      Joueur passionné, j'ai voulu créer <em>mon propre jeu</em> pour jouer avec mes amis, sans avoir de grosses compétences techniques. Plutôt que d'attendre l'outil parfait, <strong>je l'ai construit</strong>.<br><br>
+      <strong>Forgia</strong> a l'ambition d'être la plateforme de référence : <em>joue, crée et monétise</em> tes jeux 3D, avec un rendu <em>AAA</em>, une <em>IA au service des créateurs</em>, construite en <em>Rust</em> avec <em>Bevy</em>.
+    </p>
+
+    <div class="tags">
+      <span class="tag">Rust</span>
+      <span class="tag">Bevy ECS</span>
+      <span class="tag">IA au service du créateur</span>
+      <span class="tag">No-Code</span>
+      <span class="tag">70% Revenus Créateur</span>
+      <span class="tag">Open Source (BSL)</span>
+    </div>
+  </div>
+
+  <!-- RIGHT — QR Code -->
+  <div class="right">
+    <div class="qr-label">Scannez pour découvrir</div>
+    <div class="qr-box" id="qrcode"></div>
+    <div class="qr-url">forgia-gaming.vercel.app</div>
+    <div class="qr-hint">Présentation, démo, roadmap</div>
+  </div>
+</div>
+
+<script>
+// QR Code
+(function(){
+  const url = 'https://forgia-gaming.vercel.app/presentation';
+  const container = document.getElementById('qrcode');
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js';
+  script.onload = function() {
+    const qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    const moduleCount = qr.getModuleCount();
+    const canvas = document.createElement('canvas');
+    const size = 300;
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const cellSize = size / moduleCount;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#08080f';
+    for(let row = 0; row < moduleCount; row++) {
+      for(let col = 0; col < moduleCount; col++) {
+        if(qr.isDark(row, col)) {
+          ctx.fillRect(col * cellSize, row * cellSize, cellSize + 0.5, cellSize + 0.5);
+        }
+      }
+    }
+    container.appendChild(canvas);
+  };
+  script.onerror = function() {
+    container.innerHTML = '<div style="font-size:11px;color:#08080f;padding:12px;text-align:center;font-family:monospace">QR Code<br>(necessite internet)</div>';
+  };
+  document.head.appendChild(script);
+})();
+
+// Sparks
+(function() {
+  const canvas = document.getElementById('sparksCanvas');
+  const ctx = canvas.getContext('2d');
+  let sparks = [];
+  const colors = ['#f59e0b','#f97316','#d4a017','#e67e22','#FFB347','#ef4444'];
+
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function spawnSpark() {
+    if(sparks.length > 50) return;
+    const edge = Math.random();
+    let x, y, vx, vy;
+    if(edge < 0.5) {
+      x = Math.random() * canvas.width;
+      y = canvas.height + 5;
+      vx = (Math.random() - 0.5) * 2;
+      vy = -(1.5 + Math.random() * 2.5);
+    } else if(edge < 0.75) {
+      x = -5;
+      y = canvas.height * 0.2 + Math.random() * canvas.height * 0.6;
+      vx = 1 + Math.random() * 1.5;
+      vy = -(0.3 + Math.random() * 1);
+    } else {
+      x = canvas.width + 5;
+      y = canvas.height * 0.2 + Math.random() * canvas.height * 0.6;
+      vx = -(1 + Math.random() * 1.5);
+      vy = -(0.3 + Math.random() * 1);
+    }
+    sparks.push({
+      x, y, vx, vy,
+      size: 1 + Math.random() * 2.5,
+      life: 1,
+      decay: 0.003 + Math.random() * 0.005,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    });
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    sparks.forEach(s => {
+      s.x += s.vx;
+      s.y += s.vy;
+      s.vy *= 0.999;
+      s.vx += (Math.random() - 0.5) * 0.08;
+      s.life -= s.decay;
+      if(s.life <= 0) return;
+      ctx.globalAlpha = s.life * 0.6;
+      ctx.fillStyle = s.color;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = s.life * 0.1;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.size * 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = s.life * 0.18;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x - s.vx * 3, s.y - s.vy * 3);
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = s.size * 0.4;
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    sparks = sparks.filter(s => s.life > 0);
+    if(Math.random() < 0.18) spawnSpark();
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>
